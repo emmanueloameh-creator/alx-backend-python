@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Utility functions module."""
 
+import requests
+
 
 def access_nested_map(nested_map, path):
     """Access nested map using path."""
@@ -10,3 +12,9 @@ def access_nested_map(nested_map, path):
             raise KeyError(key)
         current = current[key]
     return current
+
+
+def get_json(url):
+    """Fetch JSON content from a URL."""
+    response = requests.get(url)
+    return response.json()
