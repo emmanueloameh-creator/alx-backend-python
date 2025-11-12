@@ -2,6 +2,7 @@
 """Utility functions module."""
 
 import requests
+from functools import wraps
 
 
 def access_nested_map(nested_map, path):
@@ -18,3 +19,16 @@ def get_json(url):
     """Fetch JSON content from a URL."""
     response = requests.get(url)
     return response.json()
+
+
+def memoize(fn):
+    """Memoization decorator for a class method."""
+    attr_name = "_memoized_" + fn.__name__
+
+    @wraps(fn)
+    def memoizer(self):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, fn(self))
+        return getattr(self, attr_name)
+
+    return memoizer
