@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Unit tests for utils.py including memoize"""
+"""
+Unit tests for utils.memoize decorator.
+"""
 
 import unittest
 from unittest.mock import patch
@@ -7,31 +9,28 @@ from utils import memoize
 
 
 class TestMemoize(unittest.TestCase):
-    """Test cases for memoize decorator"""
+    """Test case for the memoize decorator."""
 
     def test_memoize(self):
-        """Test that memoize caches the result and calls the method only once"""
+        """Test that memoize caches the method result properly."""
 
         class TestClass:
-            """Test class to use memoize decorator"""
+            """A simple class to test memoization."""
 
             def a_method(self):
+                """Return a fixed value."""
                 return 42
 
             @memoize
             def a_property(self):
+                """Call a_method, but result should be cached."""
                 return self.a_method()
 
-        test_instance = TestClass()
+        with patch.object(TestClass, "a_method", return_value=42) as mock_method:
+            obj = TestClass()
+            first = obj.a_property()
+            second = obj.a_property()
 
-        with patch.object(TestClass, 'a_method', return_value=42) as mock_method:
-            # Call twice
-            result1 = test_instance.a_property()
-            result2 = test_instance.a_property()
-
-            # The result should always be correct
-            self.assertEqual(result1, 42)
-            self.assertEqual(result2, 42)
-
-            # a_method should be called only once
+            self.assertEqual(first, 42)
+            self.assertEqual(second, 42)
             mock_method.assert_called_once()
