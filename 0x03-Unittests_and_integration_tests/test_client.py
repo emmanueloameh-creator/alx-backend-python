@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Unit tests for client.GithubOrgClient and Integration tests.
+Unit and Integration tests for GithubOrgClient.
 """
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
 from fixtures import org_payload, repos_payload, expected_repos, apache2_repos
@@ -23,30 +23,38 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Start patcher for requests.get"""
+        """Start patching requests.get and return fixture payloads."""
         cls.get_patcher = patch("requests.get")
+
         mock_get = cls.get_patcher.start()
 
-        # Configure what requests.get().json() returns
-        mock_get.return_value.json.side_effect = [
-            cls.org_payload,
-            cls.repos_payload,
-        ]
+        # Mock the .json() method for each expected URL
+        def side_effect(url):
+            mock_response = Mock()
+            if url.endswith("/orgs/google"):
+                mock_response.json.return_value = cls.org_payload
+            elif url.endswith("/orgs/google/repos"):
+                mock_response.json.return_value = cls.repos_payload
+            return mock_response
+
+        mock_get.side_effect = side_effect
 
     @classmethod
     def tearDownClass(cls):
-        """Stop patcher"""
+        """Stop requests.get patcher."""
         cls.get_patcher.stop()
 
-    def test_public_repos_integration(self):
-        """Test public_repos returns expected_repos"""
+    def test_public_repos(self):
+        """Test public_repos returns expected repo list from fixtures."""
         client = GithubOrgClient("google")
-        self.assertEqual(client.public_repos(), self.expected_repos)
+        repos = client.public_repos()
+        self.assertEqual(repos, self.expected_repos)
 
-    def test_public_repos_with_apache2(self):
-        """Test filtering repos with license apache-2.0"""
+    def test_public_repos_with_license(self):
+        """
+        Test public_repos returns only repos with the apache-2.0 license
+        using fixtures.
+        """
         client = GithubOrgClient("google")
-        self.assertEqual(
-            client.public_repos("apache-2.0"),
-            self.apache2_repos
-        )
+        repos = client.public_repos("apache-2.0")
+        self.assertEqual(repos, self.apache2_repos)
