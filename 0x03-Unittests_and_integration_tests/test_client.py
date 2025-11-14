@@ -13,35 +13,36 @@ class TestGithubOrgClient(unittest.TestCase):
     """Tests for GithubOrgClient.org"""
 
     @parameterized.expand([
-        ("google"),
-        ("abc"),
+        ("google",),
+        ("abc",),
     ])
     @patch("client.get_json")
-    def test_org(self, org_name, mock_get_json):
-        """Test that GithubOrgClient.org returns correct value
-        and calls get_json once with the expected URL.
-        """
-        # Mock return value
-        mock_get_json.return_value = {"org": org_name}
+    def test_public_repos(self, org_name, mock_get_json):
+        """Test public_repos returns the correct list of repos."""
 
-        # Create instance
-        client = GithubOrgClient(org_name)
-        result = client.org
+        # Mock JSON payload returned by get_json
+        mock_payload = [
+            {"name": "repo1"},
+            {"name": "repo2"},
+        ]
+        mock_get_json.return_value = mock_payload
 
-        # Assertions
-        mock_get_json.assert_called_once_with(
-            f"https://api.github.com/orgs/{org_name}"
-        )
-        self.assertEqual(result, {"org": org_name})
-	
-    def test_public_repos_url(self):
-        """Test that _public_repos_url returns the correct URL."""
-        payload = {"repos_url": "https://api.github.com/orgs/google/repos"}
+        # Mock the _public_repos_url property
+        with patch(
+            "client.GithubOrgClient._public_repos_url",
+            new_callable=Mock
+        ) as mock_public_url:
+            mock_public_url.return_value = f"https://api.github.com/orgs/{org_name}/repos"
+            client = GithubOrgClient(org_name)
+            result = client.public_repos()
 
-        with patch("client.GithubOrgClient.org", new_callable=Mock(return_value=payload)):
-            client = GithubOrgClient("google")
-            self.assertEqual(client._public_repos_url, payload["repos_url"])
+            # Expected repo names list
+            self.assertEqual(result, ["repo1", "repo2"])
 
+            # Assert get_json called once with the mocked URL
+            mock_get_json.assert_called_once_with(
+                f"https://api.github.com/orgs/{org_name}/repos"
+            )
 
 
 if __name__ == "__main__":
